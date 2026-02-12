@@ -174,36 +174,40 @@ export function signIn() {
     });
 }
 
-/** Próba cichego auto-logowania - zwraca pilota lub null */
-export function tryAutoLogin() {
-    const savedEmail = localStorage.getItem('sp_sexy_pilot_email');
-    if (!savedEmail) return Promise.resolve(null);
+/** Przywróć sesję z localStorage (bez tokena Google — natychmiastowe) */
+export function restoreSession() {
+    const email = localStorage.getItem('sp_sexy_pilot_email');
+    if (!email) return null;
 
-    return new Promise((resolve) => {
-        // Timeout - jeśli Google nie odpowie w 3s, pokaż ekran logowania
-        const timeout = setTimeout(() => {
-            console.log('Auto-login timeout');
-            resolve(null);
-        }, 3000);
+    const pilot = CONFIG.PILOTS.find(p => p.email.toLowerCase() === email.toLowerCase());
+    if (!pilot) {
+        localStorage.removeItem('sp_sexy_pilot_email');
+        return null;
+    }
 
+    currentPilot = pilot;
+    console.log('Sesja przywrócona z localStorage:', pilot.name);
+    return pilot;
+}
+
+/** Upewnij się że mamy ważny token Google API (leniwe pobieranie) */
+export function ensureToken() {
+    // Jeśli token jest aktywny — nic nie rób
+    if (accessToken && gapi.client.getToken()) {
+        return Promise.resolve();
+    }
+
+    // Pobierz token — Google pokaże popup tylko jeśli sesja wygasła
+    return new Promise((resolve, reject) => {
         tokenClient.callback = async (response) => {
-            clearTimeout(timeout);
-
             if (response.error) {
-                console.log('Auto-login failed:', response.error);
-                resolve(null);
+                reject(new Error('Wymagane logowanie. Odśwież stronę i zaloguj się ponownie.'));
                 return;
             }
-
-            try {
-                const pilot = await processTokenResponse(response);
-                resolve(pilot);
-            } catch (err) {
-                console.log('Auto-login error:', err.message);
-                resolve(null);
-            }
+            accessToken = response.access_token;
+            gapi.client.setToken({ access_token: accessToken });
+            resolve();
         };
-
         tokenClient.requestAccessToken({ prompt: '' });
     });
 }
@@ -229,29 +233,20 @@ export function isAuthenticated() {
     return currentPilot !== null && accessToken !== null;
 }
 
-/** Wrapper API call z obsługą 401 */
+/** Wrapper API call — zapewnia token i obsługuje 401 */
 export async function apiCall(fn) {
+    // Upewnij się że mamy token przed wywołaniem
+    await ensureToken();
+
     try {
         return await fn();
     } catch (err) {
         if (err?.status === 401 || err?.result?.error?.code === 401) {
-            // Token wygasł - odśwież
-            return new Promise((resolve, reject) => {
-                tokenClient.callback = async (response) => {
-                    if (response.error) {
-                        reject(new Error('Sesja wygasła. Zaloguj się ponownie.'));
-                        return;
-                    }
-                    accessToken = response.access_token;
-                    gapi.client.setToken({ access_token: accessToken });
-                    try {
-                        resolve(await fn());
-                    } catch (retryErr) {
-                        reject(retryErr);
-                    }
-                };
-                tokenClient.requestAccessToken({ prompt: '' });
-            });
+            // Token wygasł — wymuś nowy
+            accessToken = null;
+            gapi.client.setToken(null);
+            await ensureToken();
+            return await fn();
         }
         throw err;
     }

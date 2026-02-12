@@ -1,4 +1,4 @@
-import { initAuth, signIn, signOut, getCurrentPilot, isAuthenticated, tryAutoLogin } from './auth.js';
+import { initAuth, signIn, signOut, getCurrentPilot, isAuthenticated, restoreSession } from './auth.js';
 import { renderReservations } from './view-reservations.js';
 import { renderFlightLog } from './view-flight-log.js';
 import { showToast, showLoading, hideLoading } from './utils.js';
@@ -19,13 +19,13 @@ async function init() {
     // Prompt instalacji na iOS
     showInstallPrompt();
 
-    // Inicjalizacja auth + próba auto-logowania
+    // Inicjalizacja auth
     showLoading();
     try {
         await initAuth();
 
-        // Spróbuj zalogować automatycznie (bez popupu)
-        const pilot = await tryAutoLogin();
+        // Przywróć sesję z localStorage (natychmiastowe, bez tokena)
+        const pilot = restoreSession();
         if (pilot) {
             showMainScreen(pilot);
         }
