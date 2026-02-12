@@ -125,6 +125,33 @@ async function getUserEmail(tokenResponse) {
     return null;
 }
 
+/** Przetwarza odpowiedź tokena - wspólna logika dla signIn i tryAutoLogin */
+async function processTokenResponse(response) {
+    accessToken = response.access_token;
+    gapi.client.setToken({ access_token: accessToken });
+
+    const email = await getUserEmail(response);
+
+    if (!email) {
+        throw new Error('Nie udało się pobrać adresu email. Sprawdź uprawnienia aplikacji w Google Cloud Console.');
+    }
+
+    console.log('Zalogowany jako:', email);
+
+    // Sprawdź whitelist
+    const pilot = CONFIG.PILOTS.find(p => p.email.toLowerCase() === email.toLowerCase());
+    if (!pilot) {
+        google.accounts.oauth2.revoke(accessToken);
+        gapi.client.setToken(null);
+        accessToken = null;
+        throw new Error(`Konto ${email} nie ma dostępu do aplikacji.`);
+    }
+
+    currentPilot = pilot;
+    localStorage.setItem('sp_sexy_pilot_email', email);
+    return pilot;
+}
+
 /** Logowanie - zwraca Promise z obiektem pilota */
 export function signIn() {
     return new Promise((resolve, reject) => {
@@ -134,32 +161,8 @@ export function signIn() {
                 return;
             }
 
-            accessToken = response.access_token;
-            gapi.client.setToken({ access_token: accessToken });
-
             try {
-                console.log('Token response keys:', Object.keys(response));
-
-                const email = await getUserEmail(response);
-
-                if (!email) {
-                    reject(new Error('Nie udało się pobrać adresu email. Sprawdź uprawnienia aplikacji w Google Cloud Console.'));
-                    return;
-                }
-
-                console.log('Zalogowany jako:', email);
-
-                // Sprawdź whitelist
-                const pilot = CONFIG.PILOTS.find(p => p.email.toLowerCase() === email.toLowerCase());
-                if (!pilot) {
-                    google.accounts.oauth2.revoke(accessToken);
-                    gapi.client.setToken(null);
-                    accessToken = null;
-                    reject(new Error(`Konto ${email} nie ma dostępu do aplikacji.`));
-                    return;
-                }
-
-                currentPilot = pilot;
+                const pilot = await processTokenResponse(response);
                 resolve(pilot);
             } catch (err) {
                 console.error('Login error details:', err);
@@ -167,7 +170,41 @@ export function signIn() {
             }
         };
 
-        tokenClient.requestAccessToken({ prompt: 'consent' });
+        tokenClient.requestAccessToken({ prompt: '' });
+    });
+}
+
+/** Próba cichego auto-logowania - zwraca pilota lub null */
+export function tryAutoLogin() {
+    const savedEmail = localStorage.getItem('sp_sexy_pilot_email');
+    if (!savedEmail) return Promise.resolve(null);
+
+    return new Promise((resolve) => {
+        // Timeout - jeśli Google nie odpowie w 3s, pokaż ekran logowania
+        const timeout = setTimeout(() => {
+            console.log('Auto-login timeout');
+            resolve(null);
+        }, 3000);
+
+        tokenClient.callback = async (response) => {
+            clearTimeout(timeout);
+
+            if (response.error) {
+                console.log('Auto-login failed:', response.error);
+                resolve(null);
+                return;
+            }
+
+            try {
+                const pilot = await processTokenResponse(response);
+                resolve(pilot);
+            } catch (err) {
+                console.log('Auto-login error:', err.message);
+                resolve(null);
+            }
+        };
+
+        tokenClient.requestAccessToken({ prompt: '' });
     });
 }
 
@@ -179,6 +216,7 @@ export function signOut() {
     }
     accessToken = null;
     currentPilot = null;
+    localStorage.removeItem('sp_sexy_pilot_email');
 }
 
 /** Obecny pilot */

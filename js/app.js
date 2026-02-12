@@ -1,4 +1,4 @@
-import { initAuth, signIn, signOut, getCurrentPilot, isAuthenticated } from './auth.js';
+import { initAuth, signIn, signOut, getCurrentPilot, isAuthenticated, tryAutoLogin } from './auth.js';
 import { renderReservations } from './view-reservations.js';
 import { renderFlightLog } from './view-flight-log.js';
 import { showToast, showLoading, hideLoading } from './utils.js';
@@ -19,10 +19,16 @@ async function init() {
     // Prompt instalacji na iOS
     showInstallPrompt();
 
-    // Inicjalizacja auth
+    // Inicjalizacja auth + próba auto-logowania
     showLoading();
     try {
         await initAuth();
+
+        // Spróbuj zalogować automatycznie (bez popupu)
+        const pilot = await tryAutoLogin();
+        if (pilot) {
+            showMainScreen(pilot);
+        }
     } catch (err) {
         console.error('Auth init error:', err);
         showToast('Błąd inicjalizacji. Odśwież stronę.', 'error');
