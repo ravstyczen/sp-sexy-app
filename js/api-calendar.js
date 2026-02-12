@@ -24,7 +24,7 @@ export async function getWeekEvents(weekStart) {
 /** Utwórz rezerwację */
 export async function createReservation(pilot, startDate, endDate, isAllDay) {
     const resource = {
-        summary: pilot.name,
+        summary: `[SP-SEXY] ${pilot.name}`,
         description: 'Rezerwacja SP-SEXY',
         colorId: pilot.colorId,
         extendedProperties: {
@@ -65,7 +65,7 @@ export async function createReservation(pilot, startDate, endDate, isAllDay) {
 /** Aktualizuj rezerwację */
 export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay) {
     const resource = {
-        summary: pilot.name,
+        summary: `[SP-SEXY] ${pilot.name}`,
         colorId: pilot.colorId,
         extendedProperties: {
             private: {
