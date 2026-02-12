@@ -21,8 +21,8 @@ export async function getFlightLog() {
         hoursAfter: row[3] || '',
         fuelAdded: row[4] || '',
         oilAdded: row[5] || '',
-        fuelLevel: row[6] || '',
-        fuelCost: row[7] || '',
+        fuelCost: row[6] || '',
+        fuelLevel: row[7] || '',
         remarks: row[8] || '',
     }));
 }
@@ -43,8 +43,8 @@ export async function appendFlightLogEntry(entry) {
         entry.hoursAfter,
         entry.fuelAdded,
         entry.oilAdded,
-        entry.fuelLevel,
         entry.fuelCost,
+        entry.fuelLevel,
         entry.remarks,
     ]];
 

@@ -61,14 +61,14 @@ async function renderNewEntryForm() {
                     <input type="number" id="fl-fuel" inputmode="decimal" step="0.1" value="0">
                 </div>
                 <div class="form-group">
-                    <label>Koszt paliwa (PLN)</label>
-                    <input type="number" id="fl-fuel-cost" inputmode="decimal" step="0.01" value="0">
+                    <label>Olej dolany (L)</label>
+                    <input type="number" id="fl-oil" inputmode="decimal" step="0.1" value="0">
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label>Olej dolany (L)</label>
-                    <input type="number" id="fl-oil" inputmode="decimal" step="0.1" value="0">
+                    <label>Koszt paliwa (PLN)</label>
+                    <input type="number" id="fl-fuel-cost" inputmode="decimal" step="0.01" value="0">
                 </div>
                 <div class="form-group">
                     <label>Stan paliwa (L)</label>
@@ -177,8 +177,8 @@ async function renderHistory() {
                             <th>Przed</th>
                             <th>Po</th>
                             <th>Paliwo (L)</th>
-                            <th>Koszt (PLN)</th>
                             <th>Olej (L)</th>
+                            <th>Koszt (PLN)</th>
                             <th>Stan pal.</th>
                             <th>Uwagi</th>
                         </tr>
@@ -191,8 +191,8 @@ async function renderHistory() {
                                 <td>${e.hoursBefore}</td>
                                 <td>${e.hoursAfter}</td>
                                 <td>${e.fuelAdded}</td>
-                                <td>${e.fuelCost}</td>
                                 <td>${e.oilAdded}</td>
+                                <td>${e.fuelCost}</td>
                                 <td>${e.fuelLevel}</td>
                                 <td>${e.remarks || '-'}</td>
                             </tr>
