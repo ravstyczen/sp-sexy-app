@@ -104,7 +104,7 @@ function renderCalendarGrid() {
         html += `<div class="allday-cell" data-date="${formatDate(d)}" data-allday="1">`;
         dayAllDay.forEach(e => {
             const pilotClass = e.pilotId === 'rafal' ? 'pilot-rafal' : 'pilot-michal';
-            html += `<div class="allday-event ${pilotClass}" data-event-id="${e.id}">${e.title}</div>`;
+            html += `<div class="allday-event ${pilotClass}" data-event-id="${e.id}">${e.title}${e.route ? ' · ' + e.route : ''}</div>`;
         });
         html += '</div>';
     }
@@ -192,8 +192,8 @@ function placeTimedEvent(event, days, startHour, endHour) {
     el.dataset.eventId = event.id;
     el.style.top = `${topOffset}px`;
     el.style.height = `${height}px`;
-    el.textContent = `${formatTime(event.start)} ${event.title}`;
-    el.title = `${event.title}\n${formatTime(event.start)} - ${formatTime(event.end)}`;
+    el.textContent = `${formatTime(event.start)} ${event.title}${event.route ? ' · ' + event.route : ''}`;
+    el.title = `${event.title}\n${formatTime(event.start)} - ${formatTime(event.end)}${event.route ? '\nTrasa: ' + event.route : ''}`;
 
     cell.appendChild(el);
 }
@@ -261,6 +261,10 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
                     <input type="time" id="modal-time-to" value="${timeTo}" step="1800">
                 </div>
             </div>
+            <div class="form-group">
+                <label>Trasa</label>
+                <input type="text" id="modal-route" placeholder="np. EPKA-EPPO" value="${isEdit ? (existingEvent.route || '') : ''}">
+            </div>
             <div class="form-actions">
                 <button class="btn btn-secondary" id="modal-cancel">Anuluj</button>
                 ${isEdit ? '<button class="btn btn-danger" id="modal-delete">Usuń</button>' : ''}
@@ -291,6 +295,7 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
         const selectedPilot = CONFIG.PILOTS.find(p => p.id === pilotId);
         const resType = overlay.querySelector('input[name="res-type"]:checked').value;
         const dateVal = overlay.querySelector('#modal-date').value;
+        const route = overlay.querySelector('#modal-route').value.trim();
 
         if (!dateVal) {
             showToast('Podaj datę', 'error');
@@ -304,9 +309,9 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
                 const end = new Date(dateVal + 'T23:59:59');
 
                 if (isEdit) {
-                    await updateReservation(existingEvent.id, selectedPilot, start, end, true);
+                    await updateReservation(existingEvent.id, selectedPilot, start, end, true, route);
                 } else {
-                    await createReservation(selectedPilot, start, end, true);
+                    await createReservation(selectedPilot, start, end, true, route);
                 }
             } else {
                 const fromVal = overlay.querySelector('#modal-time-from').value;
@@ -343,9 +348,9 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
                 }
 
                 if (isEdit) {
-                    await updateReservation(existingEvent.id, selectedPilot, start, end, false);
+                    await updateReservation(existingEvent.id, selectedPilot, start, end, false, route);
                 } else {
-                    await createReservation(selectedPilot, start, end, false);
+                    await createReservation(selectedPilot, start, end, false, route);
                 }
             }
 
