@@ -460,6 +460,19 @@ input, select, textarea, button { font-family: var(--font); font-size: 16px; }
 
 .radio-group input[type="radio"] { width: auto; }
 
+/* Checkbox */
+.checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--color-text);
+    cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] { width: auto; }
+
 /* Przyciski formularza */
 .form-actions {
     display: flex;

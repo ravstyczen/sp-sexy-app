@@ -76,6 +76,9 @@ async function renderNewEntryForm() {
                 </div>
             </div>
             <div class="form-group">
+                <label class="checkbox-label"><input type="checkbox" id="fl-ops"> Lot OPS</label>
+            </div>
+            <div class="form-group">
                 <label>Uwagi (lot i stan samolotu)</label>
                 <textarea id="fl-remarks" placeholder="Uwagi dotyczące lotu i stanu samolotu..."></textarea>
             </div>
@@ -125,6 +128,7 @@ async function renderNewEntryForm() {
             fuelLevel: document.getElementById('fl-fuel-level').value,
             fuelCost: document.getElementById('fl-fuel-cost').value,
             remarks: document.getElementById('fl-remarks').value,
+            isOps: document.getElementById('fl-ops').checked ? 'TAK' : '',
         };
 
         showLoading();
@@ -180,6 +184,7 @@ async function renderHistory() {
                             <th>Olej (L)</th>
                             <th>Koszt (PLN)</th>
                             <th>Stan pal.</th>
+                            <th>OPS</th>
                             <th>Uwagi</th>
                         </tr>
                     </thead>
@@ -194,6 +199,7 @@ async function renderHistory() {
                                 <td>${e.oilAdded}</td>
                                 <td>${e.fuelCost}</td>
                                 <td>${e.fuelLevel}</td>
+                                <td>${e.isOps || '-'}</td>
                                 <td>${e.remarks || '-'}</td>
                             </tr>
                         `).join('')}
@@ -226,6 +232,7 @@ async function renderHistory() {
                                 <th>Koszt (PLN)</th>
                                 <th>Olej (L)</th>
                                 <th>Stan pal.</th>
+                                <th>OPS</th>
                                 <th>Uwagi</th>
                             </tr>
                         </thead>
@@ -237,9 +244,10 @@ async function renderHistory() {
                                     <td>${e.hoursBefore}</td>
                                     <td>${e.hoursAfter}</td>
                                     <td>${e.fuelAdded}</td>
-                                    <td>${e.fuelCost}</td>
                                     <td>${e.oilAdded}</td>
+                                    <td>${e.fuelCost}</td>
                                     <td>${e.fuelLevel}</td>
+                                    <td>${e.isOps || '-'}</td>
                                     <td>${e.remarks || '-'}</td>
                                 </tr>
                             `).join('')}

@@ -1,8 +1,8 @@
 import { CONFIG } from './config.js';
 import { apiCall } from './auth.js';
 
-const RANGE_ALL = `${CONFIG.SHEET_NAME}!A2:I`;
-const RANGE_APPEND = `${CONFIG.SHEET_NAME}!A:I`;
+const RANGE_ALL = `${CONFIG.SHEET_NAME}!A2:J`;
+const RANGE_APPEND = `${CONFIG.SHEET_NAME}!A:J`;
 
 /** Pobierz cały dziennik lotów */
 export async function getFlightLog() {
@@ -24,6 +24,7 @@ export async function getFlightLog() {
         fuelCost: row[6] || '',
         fuelLevel: row[7] || '',
         remarks: row[8] || '',
+        isOps: row[9] || '',
     }));
 }
 
@@ -46,6 +47,7 @@ export async function appendFlightLogEntry(entry) {
         entry.fuelCost,
         entry.fuelLevel,
         entry.remarks,
+        entry.isOps || '',
     ]];
 
     await apiCall(() =>

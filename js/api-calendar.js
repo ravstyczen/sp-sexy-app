@@ -22,7 +22,7 @@ export async function getWeekEvents(weekStart) {
 }
 
 /** Utwórz rezerwację */
-export async function createReservation(pilot, startDate, endDate, isAllDay, route = '') {
+export async function createReservation(pilot, startDate, endDate, isAllDay, route = '', isOps = false) {
     const resource = {
         summary: `[SP-SEXY] ${pilot.name}`,
         description: route ? `Trasa: ${route}` : 'Rezerwacja SP-SEXY',
@@ -32,6 +32,7 @@ export async function createReservation(pilot, startDate, endDate, isAllDay, rou
                 pilotId: pilot.id,
                 pilotEmail: pilot.email,
                 route: route,
+                isOps: isOps ? '1' : '',
             }
         }
     };
@@ -64,7 +65,7 @@ export async function createReservation(pilot, startDate, endDate, isAllDay, rou
 }
 
 /** Aktualizuj rezerwację */
-export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay, route = '') {
+export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay, route = '', isOps = false) {
     const resource = {
         summary: `[SP-SEXY] ${pilot.name}`,
         description: route ? `Trasa: ${route}` : 'Rezerwacja SP-SEXY',
@@ -74,6 +75,7 @@ export async function updateReservation(eventId, pilot, startDate, endDate, isAl
                 pilotId: pilot.id,
                 pilotEmail: pilot.email,
                 route: route,
+                isOps: isOps ? '1' : '',
             }
         }
     };
@@ -138,6 +140,7 @@ function parseEvent(event) {
         id: event.id,
         title: event.summary || '',
         route: event.extendedProperties?.private?.route || '',
+        isOps: event.extendedProperties?.private?.isOps === '1',
         start,
         end,
         isAllDay,
