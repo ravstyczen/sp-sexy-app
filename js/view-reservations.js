@@ -104,7 +104,8 @@ function renderCalendarGrid() {
         html += `<div class="allday-cell" data-date="${formatDate(d)}" data-allday="1">`;
         dayAllDay.forEach(e => {
             const pilotClass = e.pilotId === 'rafal' ? 'pilot-rafal' : 'pilot-michal';
-            html += `<div class="allday-event ${pilotClass}" data-event-id="${e.id}">${e.title}${e.route ? ' · ' + e.route : ''}${e.isOps ? ' [OPS]' : ''}</div>`;
+            const vacClass = e.isVacation ? ' vacation' : '';
+            html += `<div class="allday-event ${pilotClass}${vacClass}" data-event-id="${e.id}">${e.title}${e.route ? ' · ' + e.route : ''}${e.isOps ? ' [OPS]' : ''}</div>`;
         });
         html += '</div>';
     }
@@ -154,6 +155,20 @@ function renderCalendarGrid() {
             if (event) openReservationModal(event);
         });
     });
+
+    // Swipe left/right = zmiana tygodnia
+    let touchStartX = 0, touchStartY = 0;
+    wrapper.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+        touchStartY = e.changedTouches[0].screenY;
+    }, { passive: true });
+    wrapper.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].screenX - touchStartX;
+        const dy = e.changedTouches[0].screenY - touchStartY;
+        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
+            changeWeek(dx < 0 ? 1 : -1);
+        }
+    }, { passive: true });
 }
 
 function placeTimedEvent(event, days, startHour, endHour) {
@@ -217,10 +232,14 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
 
     // Domyślne wartości
     let selectedPilotId = isEdit ? (existingEvent.pilotId || pilot.id) : pilot.id;
+    const isVacation = isEdit && existingEvent.isVacation;
     let isAllDay = isEdit ? existingEvent.isAllDay : prefillAllDay;
     let date = isEdit
         ? formatDate(existingEvent.start)
         : (prefillDate || formatDate(new Date()));
+    const vacDateFrom = isVacation ? formatDate(existingEvent.start) : date;
+    const vacDateTo = isVacation ? formatDate(existingEvent.end) : date;
+    const initType = isVacation ? 'vacation' : (isAllDay ? 'allday' : 'hours');
     let timeFrom = isEdit && !existingEvent.isAllDay
         ? formatTime(existingEvent.start)
         : (prefillHour !== null ? `${String(prefillHour).padStart(2, '0')}:00` : '08:00');
@@ -244,15 +263,26 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
             <div class="form-group">
                 <label>Typ rezerwacji</label>
                 <div class="radio-group">
-                    <label><input type="radio" name="res-type" value="hours" ${!isAllDay ? 'checked' : ''}> Godziny</label>
-                    <label><input type="radio" name="res-type" value="allday" ${isAllDay ? 'checked' : ''}> Cały dzień</label>
+                    <label><input type="radio" name="res-type" value="hours" ${initType === 'hours' ? 'checked' : ''}> Godziny</label>
+                    <label><input type="radio" name="res-type" value="allday" ${initType === 'allday' ? 'checked' : ''}> Cały dzień</label>
+                    <label><input type="radio" name="res-type" value="vacation" ${initType === 'vacation' ? 'checked' : ''}> Urlop</label>
                 </div>
             </div>
-            <div class="form-group">
+            <div class="form-group" id="date-field" ${initType === 'vacation' ? 'style="display:none"' : ''}>
                 <label>Data</label>
                 <input type="date" id="modal-date" value="${date}">
             </div>
-            <div class="form-row" id="time-fields" ${isAllDay ? 'style="display:none"' : ''}>
+            <div class="form-row" id="vacation-fields" ${initType === 'vacation' ? '' : 'style="display:none"'}>
+                <div class="form-group">
+                    <label>Od</label>
+                    <input type="date" id="modal-date-from" value="${vacDateFrom}">
+                </div>
+                <div class="form-group">
+                    <label>Do</label>
+                    <input type="date" id="modal-date-to" value="${vacDateTo}">
+                </div>
+            </div>
+            <div class="form-row" id="time-fields" ${initType === 'hours' ? '' : 'style="display:none"'}>
                 <div class="form-group">
                     <label>Od</label>
                     <input type="time" id="modal-time-from" value="${timeFrom}" step="1800">
@@ -262,12 +292,14 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
                     <input type="time" id="modal-time-to" value="${timeTo}" step="1800">
                 </div>
             </div>
-            <div class="form-group">
-                <label>Trasa</label>
-                <input type="text" id="modal-route" placeholder="np. EPKA-EPPO" value="${isEdit ? (existingEvent.route || '') : ''}">
-            </div>
-            <div class="form-group">
-                <label class="checkbox-label"><input type="checkbox" id="modal-ops" ${isEdit && existingEvent.isOps ? 'checked' : ''}> Lot OPS</label>
+            <div id="trip-fields" ${initType === 'vacation' ? 'style="display:none"' : ''}>
+                <div class="form-group">
+                    <label>Trasa</label>
+                    <input type="text" id="modal-route" placeholder="np. EPKA-EPPO" value="${isEdit ? (existingEvent.route || '') : ''}">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label"><input type="checkbox" id="modal-ops" ${isEdit && existingEvent.isOps ? 'checked' : ''}> Lot OPS</label>
+                </div>
             </div>
             <div class="form-actions">
                 <button class="btn btn-secondary" id="modal-cancel">Anuluj</button>
@@ -279,11 +311,18 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
 
     document.body.appendChild(overlay);
 
-    // Toggle pola godzin
+    // Toggle pól wg typu rezerwacji
     overlay.querySelectorAll('input[name="res-type"]').forEach(radio => {
         radio.addEventListener('change', () => {
+            if (!radio.checked) return;
             const timeFields = overlay.querySelector('#time-fields');
-            timeFields.style.display = radio.value === 'allday' ? 'none' : '';
+            const vacFields = overlay.querySelector('#vacation-fields');
+            const dateField = overlay.querySelector('#date-field');
+            const tripFields = overlay.querySelector('#trip-fields');
+            timeFields.style.display = radio.value === 'hours' ? '' : 'none';
+            vacFields.style.display = radio.value === 'vacation' ? '' : 'none';
+            dateField.style.display = radio.value === 'vacation' ? 'none' : '';
+            tripFields.style.display = radio.value === 'vacation' ? 'none' : '';
         });
     });
 
@@ -302,14 +341,34 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
         const route = overlay.querySelector('#modal-route').value.trim();
         const isOps = overlay.querySelector('#modal-ops').checked;
 
-        if (!dateVal) {
+        if (resType !== 'vacation' && !dateVal) {
             showToast('Podaj datę', 'error');
             return;
         }
 
         showLoading();
         try {
-            if (resType === 'allday') {
+            if (resType === 'vacation') {
+                const fromVal = overlay.querySelector('#modal-date-from').value;
+                const toVal = overlay.querySelector('#modal-date-to').value;
+                if (!fromVal || !toVal) {
+                    hideLoading();
+                    showToast('Podaj zakres dat urlopu', 'error');
+                    return;
+                }
+                if (fromVal > toVal) {
+                    hideLoading();
+                    showToast('Data "Do" musi być po "Od"', 'error');
+                    return;
+                }
+                const start = new Date(fromVal + 'T00:00:00');
+                const end = new Date(toVal + 'T23:59:59');
+                if (isEdit) {
+                    await updateReservation(existingEvent.id, selectedPilot, start, end, true, '', false, true);
+                } else {
+                    await createReservation(selectedPilot, start, end, true, '', false, true);
+                }
+            } else if (resType === 'allday') {
                 const start = new Date(dateVal + 'T00:00:00');
                 const end = new Date(dateVal + 'T23:59:59');
 

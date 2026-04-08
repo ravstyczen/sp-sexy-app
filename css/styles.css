@@ -341,6 +341,29 @@ input, select, textarea, button { font-family: var(--font); font-size: 16px; }
 .allday-event.pilot-rafal { background: var(--color-rafal); }
 .allday-event.pilot-michal { background: var(--color-michal); color: #333; }
 
+.allday-event.vacation {
+    opacity: 0.8;
+    font-style: italic;
+}
+.allday-event.vacation.pilot-rafal {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--color-rafal),
+        var(--color-rafal) 6px,
+        rgba(255,255,255,0.4) 6px,
+        rgba(255,255,255,0.4) 12px
+    );
+}
+.allday-event.vacation.pilot-michal {
+    background: repeating-linear-gradient(
+        45deg,
+        var(--color-michal),
+        var(--color-michal) 6px,
+        rgba(255,255,255,0.4) 6px,
+        rgba(255,255,255,0.4) 12px
+    );
+}
+
 /* === FAB (Nowa rezerwacja) === */
 .fab {
     position: fixed;

@@ -22,17 +22,19 @@ export async function getWeekEvents(weekStart) {
 }
 
 /** Utwórz rezerwację */
-export async function createReservation(pilot, startDate, endDate, isAllDay, route = '', isOps = false) {
+export async function createReservation(pilot, startDate, endDate, isAllDay, route = '', isOps = false, isVacation = false) {
+    if (isVacation) isAllDay = true;
     const resource = {
-        summary: `[SP-SEXY] ${pilot.name}`,
-        description: route ? `Trasa: ${route}` : 'Rezerwacja SP-SEXY',
+        summary: isVacation ? `[URLOP] ${pilot.name}` : `[SP-SEXY] ${pilot.name}`,
+        description: isVacation ? 'Urlop pilota' : (route ? `Trasa: ${route}` : 'Rezerwacja SP-SEXY'),
         colorId: pilot.colorId,
         extendedProperties: {
             private: {
                 pilotId: pilot.id,
                 pilotEmail: pilot.email,
-                route: route,
-                isOps: isOps ? '1' : '',
+                route: isVacation ? '' : route,
+                isOps: !isVacation && isOps ? '1' : '',
+                isVacation: isVacation ? '1' : '',
             }
         }
     };
@@ -65,17 +67,19 @@ export async function createReservation(pilot, startDate, endDate, isAllDay, rou
 }
 
 /** Aktualizuj rezerwację */
-export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay, route = '', isOps = false) {
+export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay, route = '', isOps = false, isVacation = false) {
+    if (isVacation) isAllDay = true;
     const resource = {
-        summary: `[SP-SEXY] ${pilot.name}`,
-        description: route ? `Trasa: ${route}` : 'Rezerwacja SP-SEXY',
+        summary: isVacation ? `[URLOP] ${pilot.name}` : `[SP-SEXY] ${pilot.name}`,
+        description: isVacation ? 'Urlop pilota' : (route ? `Trasa: ${route}` : 'Rezerwacja SP-SEXY'),
         colorId: pilot.colorId,
         extendedProperties: {
             private: {
                 pilotId: pilot.id,
                 pilotEmail: pilot.email,
-                route: route,
-                isOps: isOps ? '1' : '',
+                route: isVacation ? '' : route,
+                isOps: !isVacation && isOps ? '1' : '',
+                isVacation: isVacation ? '1' : '',
             }
         }
     };
@@ -141,6 +145,7 @@ function parseEvent(event) {
         title: event.summary || '',
         route: event.extendedProperties?.private?.route || '',
         isOps: event.extendedProperties?.private?.isOps === '1',
+        isVacation: event.extendedProperties?.private?.isVacation === '1',
         start,
         end,
         isAllDay,
