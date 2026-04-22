@@ -155,20 +155,6 @@ function renderCalendarGrid() {
             if (event) openReservationModal(event);
         });
     });
-
-    // Swipe left/right = zmiana tygodnia
-    let touchStartX = 0, touchStartY = 0;
-    wrapper.addEventListener('touchstart', (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-        touchStartY = e.changedTouches[0].screenY;
-    }, { passive: true });
-    wrapper.addEventListener('touchend', (e) => {
-        const dx = e.changedTouches[0].screenX - touchStartX;
-        const dy = e.changedTouches[0].screenY - touchStartY;
-        if (Math.abs(dx) > 60 && Math.abs(dy) < 50) {
-            changeWeek(dx < 0 ? 1 : -1);
-        }
-    }, { passive: true });
 }
 
 function placeTimedEvent(event, days, startHour, endHour) {
