@@ -22,7 +22,7 @@ export async function getWeekEvents(weekStart) {
 }
 
 /** Utwórz rezerwację */
-export async function createReservation(pilot, startDate, endDate, isAllDay, route = '', isOps = false, isVacation = false) {
+export async function createReservation(pilot, startDate, endDate, isAllDay, route = '', isOps = false, isVacation = false, isJoint = false) {
     if (isVacation) isAllDay = true;
     const resource = {
         summary: isVacation ? `[URLOP] ${pilot.name}` : `[SP-SEXY] ${pilot.name}`,
@@ -35,6 +35,7 @@ export async function createReservation(pilot, startDate, endDate, isAllDay, rou
                 route: isVacation ? '' : route,
                 isOps: !isVacation && isOps ? '1' : '',
                 isVacation: isVacation ? '1' : '',
+                isJoint: !isVacation && isJoint ? '1' : '',
             }
         }
     };
@@ -67,7 +68,7 @@ export async function createReservation(pilot, startDate, endDate, isAllDay, rou
 }
 
 /** Aktualizuj rezerwację */
-export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay, route = '', isOps = false, isVacation = false) {
+export async function updateReservation(eventId, pilot, startDate, endDate, isAllDay, route = '', isOps = false, isVacation = false, isJoint = false) {
     if (isVacation) isAllDay = true;
     const resource = {
         summary: isVacation ? `[URLOP] ${pilot.name}` : `[SP-SEXY] ${pilot.name}`,
@@ -80,6 +81,7 @@ export async function updateReservation(eventId, pilot, startDate, endDate, isAl
                 route: isVacation ? '' : route,
                 isOps: !isVacation && isOps ? '1' : '',
                 isVacation: isVacation ? '1' : '',
+                isJoint: !isVacation && isJoint ? '1' : '',
             }
         }
     };
@@ -146,6 +148,7 @@ function parseEvent(event) {
         route: event.extendedProperties?.private?.route || '',
         isOps: event.extendedProperties?.private?.isOps === '1',
         isVacation: event.extendedProperties?.private?.isVacation === '1',
+        isJoint: event.extendedProperties?.private?.isJoint === '1',
         start,
         end,
         isAllDay,

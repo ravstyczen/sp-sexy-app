@@ -75,8 +75,13 @@ async function renderNewEntryForm() {
                     <input type="number" id="fl-fuel-level" inputmode="decimal" step="0.1" placeholder="np. 60">
                 </div>
             </div>
-            <div class="form-group">
-                <label class="checkbox-label"><input type="checkbox" id="fl-ops"> Lot OPS</label>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="checkbox-label"><input type="checkbox" id="fl-ops"> Lot OPS</label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox-label"><input type="checkbox" id="fl-joint"> Lot wspólny</label>
+                </div>
             </div>
             <div class="form-group">
                 <label>Uwagi (lot i stan samolotu)</label>
@@ -129,6 +134,7 @@ async function renderNewEntryForm() {
             fuelCost: document.getElementById('fl-fuel-cost').value,
             remarks: document.getElementById('fl-remarks').value,
             isOps: document.getElementById('fl-ops').checked ? 'TAK' : '',
+            isJoint: document.getElementById('fl-joint').checked ? 'TAK' : 'NIE',
         };
 
         showLoading();
@@ -185,6 +191,7 @@ async function renderHistory() {
                             <th>Koszt (PLN)</th>
                             <th>Stan pal.</th>
                             <th>OPS</th>
+                            <th>Wspólny</th>
                             <th>Uwagi</th>
                         </tr>
                     </thead>
@@ -200,6 +207,7 @@ async function renderHistory() {
                                 <td>${e.fuelCost}</td>
                                 <td>${e.fuelLevel}</td>
                                 <td>${e.isOps || '-'}</td>
+                                <td>${e.isJoint || '-'}</td>
                                 <td>${e.remarks || '-'}</td>
                             </tr>
                         `).join('')}
@@ -233,6 +241,7 @@ async function renderHistory() {
                                 <th>Olej (L)</th>
                                 <th>Stan pal.</th>
                                 <th>OPS</th>
+                                <th>Wspólny</th>
                                 <th>Uwagi</th>
                             </tr>
                         </thead>
@@ -248,6 +257,7 @@ async function renderHistory() {
                                     <td>${e.fuelCost}</td>
                                     <td>${e.fuelLevel}</td>
                                     <td>${e.isOps || '-'}</td>
+                                    <td>${e.isJoint || '-'}</td>
                                     <td>${e.remarks || '-'}</td>
                                 </tr>
                             `).join('')}
