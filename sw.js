@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sp-sexy-v11';
+const CACHE_NAME = 'sp-sexy-v12';
 const APP_SHELL = [
     './',
     'index.html',

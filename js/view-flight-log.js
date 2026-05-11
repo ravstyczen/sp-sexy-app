@@ -134,7 +134,7 @@ async function renderNewEntryForm() {
             fuelCost: document.getElementById('fl-fuel-cost').value,
             remarks: document.getElementById('fl-remarks').value,
             isOps: document.getElementById('fl-ops').checked ? 'TAK' : '',
-            isJoint: document.getElementById('fl-joint').checked ? 'TAK' : 'NIE',
+            isJoint: document.getElementById('fl-joint').checked ? 'TAK' : '',
         };
 
         showLoading();
