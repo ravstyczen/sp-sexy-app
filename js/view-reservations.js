@@ -223,9 +223,13 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
     let date = isEdit
         ? formatDate(existingEvent.start)
         : (prefillDate || formatDate(new Date()));
-    const vacDateFrom = isVacation ? formatDate(existingEvent.start) : date;
-    const vacDateTo = isVacation ? formatDate(existingEvent.end) : date;
-    const initType = isVacation ? 'vacation' : (isAllDay ? 'allday' : 'hours');
+    const isMultiDay = isEdit && isAllDay && !isVacation &&
+        formatDate(existingEvent.start) !== formatDate(existingEvent.end);
+    const rangeDateFrom = (isVacation || isMultiDay) ? formatDate(existingEvent.start) : date;
+    const rangeDateTo = (isVacation || isMultiDay) ? formatDate(existingEvent.end) : date;
+    const initType = isVacation ? 'vacation'
+        : isMultiDay ? 'multiday'
+        : (isAllDay ? 'allday' : 'hours');
     let timeFrom = isEdit && !existingEvent.isAllDay
         ? formatTime(existingEvent.start)
         : (prefillHour !== null ? `${String(prefillHour).padStart(2, '0')}:00` : '08:00');
@@ -251,21 +255,22 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
                 <div class="radio-group">
                     <label><input type="radio" name="res-type" value="hours" ${initType === 'hours' ? 'checked' : ''}> Godziny</label>
                     <label><input type="radio" name="res-type" value="allday" ${initType === 'allday' ? 'checked' : ''}> Cały dzień</label>
+                    <label><input type="radio" name="res-type" value="multiday" ${initType === 'multiday' ? 'checked' : ''}> Wiele dni</label>
                     <label><input type="radio" name="res-type" value="vacation" ${initType === 'vacation' ? 'checked' : ''}> Urlop</label>
                 </div>
             </div>
-            <div class="form-group" id="date-field" ${initType === 'vacation' ? 'style="display:none"' : ''}>
+            <div class="form-group" id="date-field" ${(initType === 'vacation' || initType === 'multiday') ? 'style="display:none"' : ''}>
                 <label>Data</label>
                 <input type="date" id="modal-date" value="${date}">
             </div>
-            <div class="form-row" id="vacation-fields" ${initType === 'vacation' ? '' : 'style="display:none"'}>
+            <div class="form-row" id="daterange-fields" ${(initType === 'vacation' || initType === 'multiday') ? '' : 'style="display:none"'}>
                 <div class="form-group">
                     <label>Od</label>
-                    <input type="date" id="modal-date-from" value="${vacDateFrom}">
+                    <input type="date" id="modal-date-from" value="${rangeDateFrom}">
                 </div>
                 <div class="form-group">
                     <label>Do</label>
-                    <input type="date" id="modal-date-to" value="${vacDateTo}">
+                    <input type="date" id="modal-date-to" value="${rangeDateTo}">
                 </div>
             </div>
             <div class="form-row" id="time-fields" ${initType === 'hours' ? '' : 'style="display:none"'}>
@@ -301,14 +306,15 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
     overlay.querySelectorAll('input[name="res-type"]').forEach(radio => {
         radio.addEventListener('change', () => {
             if (!radio.checked) return;
+            const v = radio.value;
             const timeFields = overlay.querySelector('#time-fields');
-            const vacFields = overlay.querySelector('#vacation-fields');
+            const rangeFields = overlay.querySelector('#daterange-fields');
             const dateField = overlay.querySelector('#date-field');
             const tripFields = overlay.querySelector('#trip-fields');
-            timeFields.style.display = radio.value === 'hours' ? '' : 'none';
-            vacFields.style.display = radio.value === 'vacation' ? '' : 'none';
-            dateField.style.display = radio.value === 'vacation' ? 'none' : '';
-            tripFields.style.display = radio.value === 'vacation' ? 'none' : '';
+            timeFields.style.display = v === 'hours' ? '' : 'none';
+            rangeFields.style.display = (v === 'vacation' || v === 'multiday') ? '' : 'none';
+            dateField.style.display = (v === 'vacation' || v === 'multiday') ? 'none' : '';
+            tripFields.style.display = v === 'vacation' ? 'none' : '';
         });
     });
 
@@ -327,19 +333,19 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
         const route = overlay.querySelector('#modal-route').value.trim();
         const isOps = overlay.querySelector('#modal-ops').checked;
 
-        if (resType !== 'vacation' && !dateVal) {
+        if (resType !== 'vacation' && resType !== 'multiday' && !dateVal) {
             showToast('Podaj datę', 'error');
             return;
         }
 
         showLoading();
         try {
-            if (resType === 'vacation') {
+            if (resType === 'vacation' || resType === 'multiday') {
                 const fromVal = overlay.querySelector('#modal-date-from').value;
                 const toVal = overlay.querySelector('#modal-date-to').value;
                 if (!fromVal || !toVal) {
                     hideLoading();
-                    showToast('Podaj zakres dat urlopu', 'error');
+                    showToast('Podaj zakres dat', 'error');
                     return;
                 }
                 if (fromVal > toVal) {
@@ -349,10 +355,19 @@ function openReservationModal(existingEvent = null, prefillDate = null, prefillH
                 }
                 const start = new Date(fromVal + 'T00:00:00');
                 const end = new Date(toVal + 'T23:59:59');
-                if (isEdit) {
-                    await updateReservation(existingEvent.id, selectedPilot, start, end, true, '', false, true);
+                if (resType === 'vacation') {
+                    if (isEdit) {
+                        await updateReservation(existingEvent.id, selectedPilot, start, end, true, '', false, true);
+                    } else {
+                        await createReservation(selectedPilot, start, end, true, '', false, true);
+                    }
                 } else {
-                    await createReservation(selectedPilot, start, end, true, '', false, true);
+                    // multiday — zwykła rezerwacja z zakresem dat
+                    if (isEdit) {
+                        await updateReservation(existingEvent.id, selectedPilot, start, end, true, route, isOps, false);
+                    } else {
+                        await createReservation(selectedPilot, start, end, true, route, isOps, false);
+                    }
                 }
             } else if (resType === 'allday') {
                 const start = new Date(dateVal + 'T00:00:00');

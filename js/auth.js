@@ -125,10 +125,22 @@ async function getUserEmail(tokenResponse) {
     return null;
 }
 
+/** Zapisz token i jego czas wygaśnięcia do localStorage */
+function persistToken(response) {
+    const expires_at = Date.now() + (response.expires_in || 3600) * 1000;
+    try {
+        localStorage.setItem('sp_sexy_token', JSON.stringify({
+            access_token: response.access_token,
+            expires_at,
+        }));
+    } catch (e) { /* ignore quota */ }
+}
+
 /** Przetwarza odpowiedź tokena - wspólna logika dla signIn i tryAutoLogin */
 async function processTokenResponse(response) {
     accessToken = response.access_token;
     gapi.client.setToken({ access_token: accessToken });
+    persistToken(response);
 
     const email = await getUserEmail(response);
 
@@ -192,6 +204,23 @@ export function restoreSession() {
 
 /** Upewnij się że mamy ważny token Google API (leniwe pobieranie) */
 export function ensureToken() {
+    // Spróbuj przywrócić token z localStorage jeśli nie mamy go w pamięci
+    if (!accessToken) {
+        try {
+            const stored = localStorage.getItem('sp_sexy_token');
+            if (stored) {
+                const { access_token, expires_at } = JSON.parse(stored);
+                // 60 sekund bufora bezpieczeństwa
+                if (access_token && expires_at && expires_at > Date.now() + 60000) {
+                    accessToken = access_token;
+                    gapi.client.setToken({ access_token });
+                    console.log('Token przywrócony z localStorage, wygasa za',
+                        Math.round((expires_at - Date.now()) / 60000), 'min');
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }
+
     // Jeśli token jest aktywny — nic nie rób
     if (accessToken && gapi.client.getToken()) {
         return Promise.resolve();
@@ -206,6 +235,7 @@ export function ensureToken() {
             }
             accessToken = response.access_token;
             gapi.client.setToken({ access_token: accessToken });
+            persistToken(response);
             resolve();
         };
         tokenClient.requestAccessToken({ prompt: '' });
@@ -221,6 +251,7 @@ export function signOut() {
     accessToken = null;
     currentPilot = null;
     localStorage.removeItem('sp_sexy_pilot_email');
+    localStorage.removeItem('sp_sexy_token');
 }
 
 /** Obecny pilot */
@@ -245,6 +276,7 @@ export async function apiCall(fn) {
             // Token wygasł — wymuś nowy
             accessToken = null;
             gapi.client.setToken(null);
+            localStorage.removeItem('sp_sexy_token');
             await ensureToken();
             return await fn();
         }
