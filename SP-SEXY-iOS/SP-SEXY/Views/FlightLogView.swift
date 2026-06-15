@@ -199,8 +199,9 @@ struct FlightLogHistory: View {
                     ForEach(entries.reversed()) { entry in
                         FlightLogRow(entry: entry)
                             .listRowBackground((Config.pilot(name: entry.pilot)?.color ?? .gray).opacity(0.16))
-                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
-                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
+                            .listRowSeparator(.visible)
+                            .listRowSeparatorTint(Color.primary.opacity(0.35))
                     }
                 }
                 .listStyle(.plain)
@@ -243,7 +244,7 @@ struct FlightLogRow: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 3) {
+        VStack(alignment: .leading, spacing: 1) {
             HStack(spacing: 6) {
                 Text(entry.date).font(.subheadline.weight(.semibold))
                 Text("· \(entry.pilot)").font(.caption).foregroundStyle(.secondary)
@@ -273,7 +274,7 @@ struct FlightLogRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 5)
+        .padding(.vertical, 3)
     }
 
     private func stat(_ label: String, _ value: String) -> some View {
