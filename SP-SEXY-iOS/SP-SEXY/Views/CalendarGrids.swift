@@ -1,6 +1,152 @@
 import SwiftUI
 
-// MARK: - Siatka godzinowa (4 dni / tydzień)
+// MARK: - Widok dnia (day ticker)
+
+struct DayAgendaView: View {
+    let day: Date
+    let reservations: [Reservation]
+    let onTapReservation: (Reservation) -> Void
+    let onCreate: (Date) -> Void
+
+    private var items: [Reservation] {
+        reservations
+            .filter { res in
+                if res.isAllDay {
+                    return day >= res.start.startOfDay() && day <= res.end.startOfDay()
+                }
+                return res.start.isSameDay(as: day)
+            }
+            .sorted { a, b in
+                if a.isAllDay != b.isAllDay { return a.isAllDay && !b.isAllDay }
+                return a.start < b.start
+            }
+    }
+
+    var body: some View {
+        ScrollView {
+            if items.isEmpty {
+                emptyState
+            } else {
+                LazyVStack(spacing: 10) {
+                    ForEach(items) { res in
+                        DayReservationCard(reservation: res)
+                            .contentShape(RoundedRectangle(cornerRadius: 12))
+                            .onTapGesture { onTapReservation(res) }
+                    }
+                }
+                .padding()
+            }
+        }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 14) {
+            Image(systemName: "calendar.day.timeline.left")
+                .font(.system(size: 52))
+                .foregroundStyle(.tertiary)
+            Text("Brak rezerwacji tego dnia")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+            Button {
+                onCreate(PL.calendar.date(bySettingHour: 8, minute: 0, second: 0, of: day) ?? day)
+            } label: {
+                Label("Dodaj rezerwację", systemImage: "plus")
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 80)
+    }
+}
+
+struct DayReservationCard: View {
+    let reservation: Reservation
+
+    private var color: Color { reservation.pilot?.color ?? .gray }
+
+    private var pilotName: String {
+        reservation.pilot?.name
+            ?? reservation.title
+                .replacingOccurrences(of: "[SP-SEXY] ", with: "")
+                .replacingOccurrences(of: "[URLOP] ", with: "")
+    }
+
+    private var isMultiDay: Bool {
+        reservation.isAllDay && !reservation.start.isSameDay(as: reservation.end)
+    }
+
+    private var primaryText: String {
+        if reservation.isVacation { return "Urlop" }
+        if reservation.isAllDay { return isMultiDay ? "Wiele dni" : "Cały dzień" }
+        return "\(Fmt.time.string(from: reservation.start)) – \(Fmt.time.string(from: reservation.end))"
+    }
+
+    private var primaryIcon: String {
+        if reservation.isVacation { return "beach.umbrella" }
+        if reservation.isAllDay { return "sun.max" }
+        return "clock"
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Rectangle()
+                .fill(color.opacity(reservation.isVacation ? 0.5 : 1))
+                .frame(width: 6)
+
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: primaryIcon)
+                        .font(.subheadline)
+                        .foregroundStyle(color)
+                    Text(primaryText)
+                        .font(.headline)
+                        .italic(reservation.isVacation)
+                    Spacer()
+                    if reservation.isOps { badge("OPS", .orange) }
+                    if reservation.isJoint { badge("WSP", .teal) }
+                }
+
+                HStack(spacing: 6) {
+                    Circle().fill(color).frame(width: 9, height: 9)
+                    Text(pilotName)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if isMultiDay {
+                    Label("\(Fmt.dayKey.string(from: reservation.start)) → \(Fmt.dayKey.string(from: reservation.end))",
+                          systemImage: "calendar")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !reservation.route.isEmpty {
+                    Label(reservation.route, systemImage: "airplane")
+                        .font(.subheadline)
+                        .foregroundStyle(.primary)
+                }
+            }
+            .padding(12)
+        }
+        .background(color.opacity(reservation.isVacation ? 0.07 : 0.11))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(color.opacity(0.25), lineWidth: 0.5)
+        }
+    }
+
+    private func badge(_ text: String, _ tint: Color) -> some View {
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 7)
+            .padding(.vertical, 3)
+            .background(tint.opacity(0.18), in: Capsule())
+            .foregroundStyle(tint)
+    }
+}
+
+// MARK: - Siatka godzinowa (tydzień)
 
 struct TimeGridView: View {
     let days: [Date]

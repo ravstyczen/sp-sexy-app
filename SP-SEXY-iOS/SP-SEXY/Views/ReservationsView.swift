@@ -5,11 +5,11 @@ struct ReservationsView: View {
     @Environment(\.verticalSizeClass) private var vSizeClass
 
     enum CalMode: String, CaseIterable, Identifiable {
-        case fourDay, week, month
+        case day, week, month
         var id: String { rawValue }
         var label: String {
             switch self {
-            case .fourDay: return "4 dni"
+            case .day: return "Dzień"
             case .week: return "Tydzień"
             case .month: return "Miesiąc"
             }
@@ -27,7 +27,7 @@ struct ReservationsView: View {
         }
     }
 
-    @State private var mode: CalMode = .fourDay
+    @State private var mode: CalMode = .day
     @State private var anchor = Date()
     @State private var reservations: [Reservation] = []
     @State private var loading = false
@@ -111,12 +111,20 @@ struct ReservationsView: View {
     @ViewBuilder
     private var calendarContent: some View {
         Group {
-            if effectiveMode == .month {
+            switch effectiveMode {
+            case .month:
                 MonthGridView(monthAnchor: anchor, reservations: reservations) { day in
                     anchor = day
-                    mode = .fourDay
+                    mode = .day
                 }
-            } else {
+            case .day:
+                DayAgendaView(
+                    day: periodStart,
+                    reservations: reservations,
+                    onTapReservation: { activeSheet = .edit($0) },
+                    onCreate: { activeSheet = .create($0) }
+                )
+            case .week:
                 TimeGridView(
                     days: visibleDays,
                     reservations: reservations,
@@ -141,7 +149,7 @@ struct ReservationsView: View {
 
     private var periodStart: Date {
         switch effectiveMode {
-        case .fourDay: return anchor.startOfDay()
+        case .day: return anchor.startOfDay()
         case .week: return anchor.startOfWeek()
         case .month: return monthGridDays(anchor).first ?? anchor.startOfWeek()
         }
@@ -149,7 +157,7 @@ struct ReservationsView: View {
 
     private var periodDayCount: Int {
         switch effectiveMode {
-        case .fourDay: return 4
+        case .day: return 1
         case .week: return 7
         case .month: return 42
         }
@@ -165,14 +173,15 @@ struct ReservationsView: View {
 
     private var periodLabel: String {
         switch effectiveMode {
+        case .day: return Fmt.fullDayHeader(periodStart)
+        case .week: return Fmt.rangeHeader(start: periodStart, dayCount: periodDayCount)
         case .month: return Fmt.monthHeader(anchor)
-        default: return Fmt.rangeHeader(start: periodStart, dayCount: periodDayCount)
         }
     }
 
     private func shift(_ dir: Int) {
         switch effectiveMode {
-        case .fourDay: anchor = anchor.adding(days: 4 * dir)
+        case .day: anchor = anchor.adding(days: dir)
         case .week: anchor = anchor.adding(days: 7 * dir)
         case .month: anchor = PL.calendar.date(byAdding: .month, value: dir, to: anchor) ?? anchor
         }

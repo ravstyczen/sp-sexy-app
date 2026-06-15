@@ -98,6 +98,14 @@ enum Fmt {
         return "\(PL.dniKrotkie[date.weekdayIndex]) \(date.dayNumber) \(PL.miesiaceKrotkie[m])"
     }
 
+    /// Pełny nagłówek dnia: "Poniedziałek, 15 Cze 2026".
+    static func fullDayHeader(_ date: Date) -> String {
+        let cal = PL.calendar
+        let m = cal.component(.month, from: date) - 1
+        let y = cal.component(.year, from: date)
+        return "\(PL.dniTygodnia[date.weekdayIndex]), \(date.dayNumber) \(PL.miesiaceKrotkie[m]) \(y)"
+    }
+
     /// Nagłówek miesiąca: "Czerwiec 2026".
     static func monthHeader(_ date: Date) -> String {
         let cal = PL.calendar
