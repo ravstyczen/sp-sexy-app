@@ -6,6 +6,8 @@ enum PL {
     static let dniTygodnia = ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"]
     static let miesiaceKrotkie = ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze",
                                   "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"]
+    static let miesiace = ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
+                           "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"]
 
     static var calendar: Calendar {
         var c = Calendar(identifier: .gregorian)
@@ -42,6 +44,15 @@ extension Date {
     func isSameDay(as other: Date) -> Bool {
         PL.calendar.isDate(self, inSameDayAs: other)
     }
+}
+
+/// 42 dni (6 tygodni) siatki miesiąca, zaczynając od poniedziałku.
+func monthGridDays(_ date: Date) -> [Date] {
+    let cal = PL.calendar
+    let comps = cal.dateComponents([.year, .month], from: date)
+    guard let first = cal.date(from: comps) else { return [] }
+    let start = first.startOfWeek()
+    return (0..<42).map { start.adding(days: $0) }
 }
 
 /// Formatery (statyczne, w strefie aplikacji).
@@ -85,5 +96,26 @@ enum Fmt {
         let cal = PL.calendar
         let m = cal.component(.month, from: date) - 1
         return "\(PL.dniKrotkie[date.weekdayIndex]) \(date.dayNumber) \(PL.miesiaceKrotkie[m])"
+    }
+
+    /// Nagłówek miesiąca: "Czerwiec 2026".
+    static func monthHeader(_ date: Date) -> String {
+        let cal = PL.calendar
+        let m = cal.component(.month, from: date) - 1
+        let y = cal.component(.year, from: date)
+        return "\(PL.miesiace[m]) \(y)"
+    }
+
+    /// Nagłówek zakresu N dni: "10 – 13 Cze 2026".
+    static func rangeHeader(start: Date, dayCount: Int) -> String {
+        let end = start.adding(days: dayCount - 1)
+        let cal = PL.calendar
+        let mS = cal.component(.month, from: start) - 1
+        let mE = cal.component(.month, from: end) - 1
+        let year = cal.component(.year, from: end)
+        if mS == mE {
+            return "\(start.dayNumber) – \(end.dayNumber) \(PL.miesiaceKrotkie[mE]) \(year)"
+        }
+        return "\(start.dayNumber) \(PL.miesiaceKrotkie[mS]) – \(end.dayNumber) \(PL.miesiaceKrotkie[mE]) \(year)"
     }
 }

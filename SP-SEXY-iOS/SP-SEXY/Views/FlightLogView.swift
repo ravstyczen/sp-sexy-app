@@ -221,11 +221,13 @@ struct FlightLogHistory: View {
 struct FlightLogRow: View {
     let entry: FlightLogEntry
 
+    /// Nalot jako hh:mm (z dziesiętnej różnicy motogodzin).
     private var delta: String {
         guard let b = Double(entry.hoursBefore.replacingOccurrences(of: ",", with: ".")),
-              let a = Double(entry.hoursAfter.replacingOccurrences(of: ",", with: ".")) else { return "" }
-        let d = a - b
-        return String(format: "+%.1f h", d)
+              let a = Double(entry.hoursAfter.replacingOccurrences(of: ",", with: ".")),
+              a >= b else { return "" }
+        let totalMinutes = Int(((a - b) * 60.0).rounded())
+        return String(format: "%d:%02d", totalMinutes / 60, totalMinutes % 60)
     }
 
     var body: some View {

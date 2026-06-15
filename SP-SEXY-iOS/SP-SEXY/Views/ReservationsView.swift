@@ -2,14 +2,19 @@ import SwiftUI
 
 struct ReservationsView: View {
     @EnvironmentObject var auth: GoogleAuth
+    @Environment(\.verticalSizeClass) private var vSizeClass
 
-    @State private var weekStart = Date().startOfWeek()
-    @State private var reservations: [Reservation] = []
-    @State private var loading = false
-    @State private var activeSheet: ActiveSheet?
-    @State private var errorMessage: String?
-
-    private var service: CalendarService { CalendarService(auth: auth) }
+    enum CalMode: String, CaseIterable, Identifiable {
+        case fourDay, week, month
+        var id: String { rawValue }
+        var label: String {
+            switch self {
+            case .fourDay: return "4 dni"
+            case .week: return "Tydzień"
+            case .month: return "Miesiąc"
+            }
+        }
+    }
 
     enum ActiveSheet: Identifiable {
         case edit(Reservation)
@@ -22,39 +27,59 @@ struct ReservationsView: View {
         }
     }
 
+    @State private var mode: CalMode = .fourDay
+    @State private var anchor = Date()
+    @State private var reservations: [Reservation] = []
+    @State private var loading = false
+    @State private var activeSheet: ActiveSheet?
+    @State private var errorMessage: String?
+
+    private var service: CalendarService { CalendarService(auth: auth) }
+
+    /// iPhone w poziomie → niska wysokość. Wtedy pokazujemy pełny tydzień.
+    private var isLandscape: Bool { vSizeClass == .compact }
+
+    /// Tryb faktycznie wyświetlany (poziomo wymuszamy tydzień, chyba że miesiąc).
+    private var effectiveMode: CalMode {
+        if mode == .month { return .month }
+        return isLandscape ? .week : mode
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                weekBar
+                Picker("", selection: $mode) {
+                    ForEach(CalMode.allCases) { m in Text(m.label).tag(m) }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal)
+                .padding(.top, 6)
+                .padding(.bottom, 4)
+
+                periodHeader
                 Divider()
-                agenda
+                calendarContent
             }
             .navigationTitle("Rezerwacje")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) { LogoutMenu() }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        activeSheet = .create(weekStart)
-                    } label: {
+                    Button { activeSheet = .create(defaultCreateDate()) } label: {
                         Image(systemName: "plus")
                     }
                 }
             }
         }
-        .task(id: weekStart) { await load() }
+        .task(id: rangeKey) { await load() }
         .sheet(item: $activeSheet) { sheet in
             switch sheet {
             case .edit(let res):
-                ReservationEditView(existing: res, defaultDate: res.start) {
-                    await load()
-                }
-                .environmentObject(auth)
+                ReservationEditView(existing: res, defaultDate: res.start) { await load() }
+                    .environmentObject(auth)
             case .create(let day):
-                ReservationEditView(existing: nil, defaultDate: day) {
-                    await load()
-                }
-                .environmentObject(auth)
+                ReservationEditView(existing: nil, defaultDate: day) { await load() }
+                    .environmentObject(auth)
             }
         }
         .alert("Błąd", isPresented: .constant(errorMessage != nil)) {
@@ -64,173 +89,110 @@ struct ReservationsView: View {
         }
     }
 
-    // MARK: - Pasek nawigacji tygodnia
+    // MARK: - Nagłówek okresu
 
-    private var weekBar: some View {
+    private var periodHeader: some View {
         HStack {
-            Button { weekStart = weekStart.adding(days: -7) } label: {
-                Image(systemName: "chevron.left").padding(8)
+            Button { shift(-1) } label: { Image(systemName: "chevron.left").padding(8) }
+            Spacer()
+            VStack(spacing: 1) {
+                Text(periodLabel).font(.subheadline.weight(.semibold))
+                Button("Dziś") { anchor = Date() }.font(.caption)
             }
             Spacer()
-            VStack(spacing: 2) {
-                Text(Fmt.weekHeader(weekStart))
-                    .font(.subheadline.weight(.semibold))
-                Button("Dziś") { weekStart = Date().startOfWeek() }
-                    .font(.caption)
-            }
-            Spacer()
-            Button { weekStart = weekStart.adding(days: 7) } label: {
-                Image(systemName: "chevron.right").padding(8)
-            }
+            Button { shift(1) } label: { Image(systemName: "chevron.right").padding(8) }
         }
         .padding(.horizontal)
-        .padding(.vertical, 6)
+        .padding(.vertical, 4)
     }
 
-    // MARK: - Agenda tygodnia
+    // MARK: - Treść kalendarza
 
-    private var agenda: some View {
-        List {
-            ForEach(weekDays, id: \.self) { day in
-                Section {
-                    let items = reservations(on: day)
-                    if items.isEmpty {
-                        Text("—")
-                            .foregroundStyle(.tertiary)
-                            .font(.subheadline)
-                    } else {
-                        ForEach(items) { res in
-                            Button { activeSheet = .edit(res) } label: {
-                                ReservationRow(reservation: res)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                } header: {
-                    HStack {
-                        Text(Fmt.dayHeader(day))
-                        Spacer()
-                        Button {
-                            activeSheet = .create(day)
-                        } label: {
-                            Image(systemName: "plus.circle")
-                        }
-                    }
+    @ViewBuilder
+    private var calendarContent: some View {
+        Group {
+            if effectiveMode == .month {
+                MonthGridView(monthAnchor: anchor, reservations: reservations) { day in
+                    anchor = day
+                    mode = .fourDay
                 }
+            } else {
+                TimeGridView(
+                    days: visibleDays,
+                    reservations: reservations,
+                    onTapReservation: { activeSheet = .edit($0) },
+                    onCreate: { activeSheet = .create($0) }
+                )
             }
         }
-        .listStyle(.insetGrouped)
-        .overlay {
-            if loading { ProgressView() }
-        }
-        .refreshable { await load() }
-    }
-
-    // MARK: - Dane
-
-    private var weekDays: [Date] {
-        (0..<7).map { weekStart.adding(days: $0) }
-    }
-
-    private func reservations(on day: Date) -> [Reservation] {
-        reservations
-            .filter { res in
-                if res.isAllDay {
-                    return day >= res.start.startOfDay() && day <= res.end.startOfDay()
+        .overlay { if loading { ProgressView() } }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 24)
+                .onEnded { v in
+                    let dx = v.translation.width, dy = v.translation.height
+                    if abs(dx) > 80 && abs(dx) > abs(dy) * 1.5 {
+                        shift(dx < 0 ? 1 : -1)
+                    }
                 }
-                return res.start.isSameDay(as: day)
-            }
-            .sorted { a, b in
-                if a.isAllDay != b.isAllDay { return a.isAllDay && !b.isAllDay }
-                return a.start < b.start
-            }
+        )
+    }
+
+    // MARK: - Zakres / nawigacja
+
+    private var periodStart: Date {
+        switch effectiveMode {
+        case .fourDay: return anchor.startOfDay()
+        case .week: return anchor.startOfWeek()
+        case .month: return monthGridDays(anchor).first ?? anchor.startOfWeek()
+        }
+    }
+
+    private var periodDayCount: Int {
+        switch effectiveMode {
+        case .fourDay: return 4
+        case .week: return 7
+        case .month: return 42
+        }
+    }
+
+    private var visibleDays: [Date] {
+        (0..<periodDayCount).map { periodStart.adding(days: $0) }
+    }
+
+    private var rangeKey: String {
+        "\(effectiveMode.rawValue)-\(Fmt.dayKey.string(from: periodStart))"
+    }
+
+    private var periodLabel: String {
+        switch effectiveMode {
+        case .month: return Fmt.monthHeader(anchor)
+        default: return Fmt.rangeHeader(start: periodStart, dayCount: periodDayCount)
+        }
+    }
+
+    private func shift(_ dir: Int) {
+        switch effectiveMode {
+        case .fourDay: anchor = anchor.adding(days: 4 * dir)
+        case .week: anchor = anchor.adding(days: 7 * dir)
+        case .month: anchor = PL.calendar.date(byAdding: .month, value: dir, to: anchor) ?? anchor
+        }
+    }
+
+    private func defaultCreateDate() -> Date {
+        let cal = PL.calendar
+        let base = (effectiveMode == .month) ? Date() : periodStart
+        return cal.date(bySettingHour: 8, minute: 0, second: 0, of: base) ?? base
     }
 
     private func load() async {
         loading = true
         defer { loading = false }
         do {
-            reservations = try await service.fetchWeek(weekStart: weekStart)
+            let start = periodStart
+            let end = start.adding(days: periodDayCount)
+            reservations = try await service.fetchRange(from: start, to: end)
         } catch {
             errorMessage = error.localizedDescription
         }
-    }
-}
-
-// MARK: - Wiersz rezerwacji
-
-struct ReservationRow: View {
-    let reservation: Reservation
-
-    private var color: Color {
-        reservation.pilot?.color ?? .gray
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(reservation.isVacation
-                      ? AnyShapeStyle(color.opacity(0.5))
-                      : AnyShapeStyle(color))
-                .frame(width: 5)
-                .frame(maxHeight: .infinity)
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(primaryLine)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(reservation.isVacation ? .secondary : .primary)
-
-                if !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            HStack(spacing: 4) {
-                if reservation.isOps { tag("OPS", .orange) }
-                if reservation.isJoint { tag("WSP", .teal) }
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-    private var pilotName: String {
-        reservation.pilot?.name
-            ?? reservation.title
-                .replacingOccurrences(of: "[SP-SEXY] ", with: "")
-                .replacingOccurrences(of: "[URLOP] ", with: "")
-    }
-
-    private var primaryLine: String {
-        if reservation.isVacation {
-            return "🏖️ Urlop — \(pilotName)"
-        }
-        if reservation.isAllDay {
-            let multi = !reservation.start.isSameDay(as: reservation.end)
-            return multi ? "📅 \(pilotName)" : pilotName
-        }
-        return "\(Fmt.time.string(from: reservation.start))–\(Fmt.time.string(from: reservation.end))  \(pilotName)"
-    }
-
-    private var subtitle: String {
-        var parts: [String] = []
-        if reservation.isAllDay && !reservation.isVacation
-            && !reservation.start.isSameDay(as: reservation.end) {
-            parts.append("\(Fmt.dayKey.string(from: reservation.start)) → \(Fmt.dayKey.string(from: reservation.end))")
-        }
-        if !reservation.route.isEmpty { parts.append(reservation.route) }
-        return parts.joined(separator: "  ·  ")
-    }
-
-    private func tag(_ text: String, _ tint: Color) -> some View {
-        Text(text)
-            .font(.caption2.bold())
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(tint.opacity(0.18), in: Capsule())
-            .foregroundStyle(tint)
     }
 }

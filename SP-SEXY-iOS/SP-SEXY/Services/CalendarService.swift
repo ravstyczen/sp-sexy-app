@@ -13,13 +13,17 @@ struct CalendarService {
     // MARK: - Pobieranie
 
     func fetchWeek(weekStart: Date) async throws -> [Reservation] {
+        try await fetchRange(from: weekStart, to: weekStart.adding(days: 7))
+    }
+
+    /// Pobierz rezerwacje z dowolnego zakresu [from, to).
+    func fetchRange(from start: Date, to end: Date) async throws -> [Reservation] {
         let token = try await auth.validAccessToken()
-        let weekEnd = weekStart.adding(days: 7)
 
         var comps = URLComponents(string: eventsURLBase)!
         comps.queryItems = [
-            .init(name: "timeMin", value: Fmt.iso.string(from: weekStart)),
-            .init(name: "timeMax", value: Fmt.iso.string(from: weekEnd)),
+            .init(name: "timeMin", value: Fmt.iso.string(from: start)),
+            .init(name: "timeMax", value: Fmt.iso.string(from: end)),
             .init(name: "singleEvents", value: "true"),
             .init(name: "orderBy", value: "startTime"),
             .init(name: "timeZone", value: Config.timeZone)
