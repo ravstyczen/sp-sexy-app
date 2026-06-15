@@ -195,10 +195,16 @@ struct FlightLogHistory: View {
                 .padding()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List(entries.reversed()) { entry in
-                    FlightLogRow(entry: entry)
+                List {
+                    ForEach(entries.reversed()) { entry in
+                        FlightLogRow(entry: entry)
+                            .listRowBackground((Config.pilot(name: entry.pilot)?.color ?? .gray).opacity(0.16))
+                            .listRowInsets(EdgeInsets(top: 4, leading: 12, bottom: 4, trailing: 12))
+                            .listRowSeparator(.hidden)
+                    }
                 }
-                .listStyle(.insetGrouped)
+                .listStyle(.plain)
+                .environment(\.defaultMinListRowHeight, 8)
             }
         }
         .overlay { if loading { ProgressView() } }
@@ -230,41 +236,49 @@ struct FlightLogRow: View {
         return String(format: "%d:%02d", totalMinutes / 60, totalMinutes % 60)
     }
 
+    private var hasFuelInfo: Bool {
+        (!entry.fuelAdded.isEmpty && entry.fuelAdded != "0")
+            || (!entry.fuelCost.isEmpty && entry.fuelCost != "0")
+            || !entry.fuelLevel.isEmpty
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 6) {
                 Text(entry.date).font(.subheadline.weight(.semibold))
+                Text("· \(entry.pilot)").font(.caption).foregroundStyle(.secondary)
                 Spacer()
                 if entry.isOps == "TAK" { tag("OPS", .orange) }
                 if entry.isJoint == "TAK" { tag("WSP", .teal) }
             }
 
-            Text(entry.pilot).font(.caption).foregroundStyle(.secondary)
-
-            HStack(spacing: 16) {
+            HStack(spacing: 14) {
                 stat("Motogodz.", "\(entry.hoursBefore) → \(entry.hoursAfter)")
                 if !delta.isEmpty { stat("Nalot", delta) }
+                Spacer(minLength: 0)
             }
 
-            HStack(spacing: 16) {
-                if !entry.fuelAdded.isEmpty && entry.fuelAdded != "0" { stat("Paliwo", "\(entry.fuelAdded) L") }
-                if !entry.fuelCost.isEmpty && entry.fuelCost != "0" { stat("Koszt", "\(entry.fuelCost) PLN") }
-                if !entry.fuelLevel.isEmpty { stat("Stan", "\(entry.fuelLevel) L") }
+            if hasFuelInfo {
+                HStack(spacing: 14) {
+                    if !entry.fuelAdded.isEmpty && entry.fuelAdded != "0" { stat("Paliwo", "\(entry.fuelAdded) L") }
+                    if !entry.fuelCost.isEmpty && entry.fuelCost != "0" { stat("Koszt", "\(entry.fuelCost) PLN") }
+                    if !entry.fuelLevel.isEmpty { stat("Stan", "\(entry.fuelLevel) L") }
+                    Spacer(minLength: 0)
+                }
             }
 
             if !entry.remarks.isEmpty {
                 Text(entry.remarks)
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .padding(.top, 2)
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 5)
     }
 
     private func stat(_ label: String, _ value: String) -> some View {
-        VStack(alignment: .leading, spacing: 1) {
-            Text(label).font(.caption2).foregroundStyle(.tertiary)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(label).font(.system(size: 9)).foregroundStyle(.tertiary)
             Text(value).font(.caption.weight(.medium))
         }
     }

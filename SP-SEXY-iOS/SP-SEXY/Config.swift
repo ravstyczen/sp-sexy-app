@@ -53,4 +53,8 @@ enum Config {
         guard let id else { return nil }
         return pilots.first { $0.id == id }
     }
+
+    static func pilot(name: String) -> Pilot? {
+        pilots.first { $0.name == name }
+    }
 }
