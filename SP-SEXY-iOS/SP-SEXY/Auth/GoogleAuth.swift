@@ -87,7 +87,10 @@ final class GoogleAuth: NSObject, ObservableObject {
             let code = try await authorize(challenge: challenge)
             var token = try await exchange(code: code, verifier: verifier)
 
-            let email = token.email ?? (try? await fetchEmail(token.accessToken)) ?? nil
+            var email = token.email
+            if email == nil {
+                email = try? await fetchEmail(token.accessToken)
+            }
             guard let email, let p = Config.pilot(email: email) else {
                 tokens = nil
                 throw AuthError.notWhitelisted(email ?? "?")

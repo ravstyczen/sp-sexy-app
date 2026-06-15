@@ -12,7 +12,7 @@ enum Config {
     /// Bundle ID zgodny z PRODUCT_BUNDLE_IDENTIFIER projektu (domyślnie `pl.spsexy.reservations`).
     ///
     /// Klient iOS nie ma sekretu — autoryzacja odbywa się przez PKCE.
-    static let iosClientID = "902642689687-XXXXXXXXXXXXXXXXXXXX.apps.googleusercontent.com"
+    static let iosClientID = "902642689687-og4lp684cngapqfi0akd0s92r0a81bbk.apps.googleusercontent.com"
 
     /// Schemat przekierowania = odwrócony identyfikator klienta (konwencja Google).
     /// Ten sam schemat musi być wpisany w Info.plist (CFBundleURLTypes).

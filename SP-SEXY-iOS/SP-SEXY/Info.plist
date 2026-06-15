@@ -42,9 +42,10 @@
 				<!-- ⚠️ UZUPEŁNIJ: odwrócony identyfikator klienta iOS OAuth.
 				     Przykład: com.googleusercontent.apps.902642689687-XXXXXXXX
 				     Musi być identyczny z Config.reversedClientScheme. -->
-				<string>com.googleusercontent.apps.902642689687-XXXXXXXXXXXXXXXXXXXX</string>
+				<string>com.googleusercontent.apps.902642689687-og4lp684cngapqfi0akd0s92r0a81bbk</string>
 			</array>
 		</dict>
 	</array>
 </dict>
 </plist>
+
