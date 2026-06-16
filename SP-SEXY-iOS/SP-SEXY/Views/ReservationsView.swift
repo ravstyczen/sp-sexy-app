@@ -200,6 +200,10 @@ struct ReservationsView: View {
             let start = periodStart
             let end = start.adding(days: periodDayCount)
             reservations = try await service.fetchRange(from: start, to: end)
+        } catch is CancellationError {
+            // Zmiana dnia/tygodnia anulowała poprzednie żądanie — ignoruj.
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            // To samo, ale z URLSession.
         } catch {
             errorMessage = error.localizedDescription
         }

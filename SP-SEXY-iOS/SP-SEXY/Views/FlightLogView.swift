@@ -83,6 +83,8 @@ struct NewFlightLogForm: View {
             Section("Uwagi") {
                 TextField("Uwagi dotyczące lotu i stanu samolotu…", text: $remarks, axis: .vertical)
                     .lineLimit(3...6)
+                    .textInputAutocapitalization(.sentences)
+                    .autocorrectionDisabled(false)
             }
 
             if let errorMessage {
@@ -219,6 +221,10 @@ struct FlightLogHistory: View {
         do {
             entries = try await service.getFlightLog()
             errorMessage = nil
+        } catch is CancellationError {
+            // ignoruj anulowanie
+        } catch let urlError as URLError where urlError.code == .cancelled {
+            // ignoruj anulowanie
         } catch {
             errorMessage = error.localizedDescription
         }
