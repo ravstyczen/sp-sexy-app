@@ -268,7 +268,7 @@ struct FlightLogRow: View {
                 HStack(spacing: 14) {
                     if !entry.fuelAdded.isEmpty && entry.fuelAdded != "0" { stat("Paliwo", "\(entry.fuelAdded) L") }
                     if !entry.fuelCost.isEmpty && entry.fuelCost != "0" { stat("Koszt", "\(entry.fuelCost) PLN") }
-                    if !entry.fuelLevel.isEmpty { stat("Stan", "\(entry.fuelLevel) L", valueColor: fuelLevelLow ? .red : .primary) }
+                    if !entry.fuelLevel.isEmpty { fuelLevelStat }
                     Spacer(minLength: 0)
                 }
             }
@@ -299,10 +299,26 @@ struct FlightLogRow: View {
         }
     }
 
-    /// Stan paliwa <= 40 L oznaczamy na czerwono.
+    /// Stan paliwa <= 40 L oznaczamy na czerwono z ikoną ostrzeżenia.
     private var fuelLevelLow: Bool {
         guard let v = Double(entry.fuelLevel.replacingOccurrences(of: ",", with: ".")) else { return false }
         return v <= 40
+    }
+
+    private var fuelLevelStat: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Stan").font(.system(size: 9)).foregroundStyle(.tertiary)
+            HStack(spacing: 3) {
+                Text("\(entry.fuelLevel) L")
+                    .font(.caption.weight(fuelLevelLow ? .semibold : .medium))
+                    .foregroundStyle(fuelLevelLow ? .red : .primary)
+                if fuelLevelLow {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 10))
+                        .foregroundStyle(.red)
+                }
+            }
+        }
     }
 
     private func tag(_ text: String, _ tint: Color) -> some View {
