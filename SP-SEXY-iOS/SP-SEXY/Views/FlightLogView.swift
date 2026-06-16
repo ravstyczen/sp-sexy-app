@@ -268,7 +268,7 @@ struct FlightLogRow: View {
                 HStack(spacing: 14) {
                     if !entry.fuelAdded.isEmpty && entry.fuelAdded != "0" { stat("Paliwo", "\(entry.fuelAdded) L") }
                     if !entry.fuelCost.isEmpty && entry.fuelCost != "0" { stat("Koszt", "\(entry.fuelCost) PLN") }
-                    if !entry.fuelLevel.isEmpty { stat("Stan", "\(entry.fuelLevel) L") }
+                    if !entry.fuelLevel.isEmpty { stat("Stan", "\(entry.fuelLevel) L", valueColor: fuelLevelLow ? .red : .primary) }
                     Spacer(minLength: 0)
                 }
             }
@@ -292,11 +292,17 @@ struct FlightLogRow: View {
             .foregroundStyle(.white)
     }
 
-    private func stat(_ label: String, _ value: String) -> some View {
+    private func stat(_ label: String, _ value: String, valueColor: Color = .primary) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(label).font(.system(size: 9)).foregroundStyle(.tertiary)
-            Text(value).font(.caption.weight(.medium))
+            Text(value).font(.caption.weight(.medium)).foregroundStyle(valueColor)
         }
+    }
+
+    /// Stan paliwa <= 40 L oznaczamy na czerwono.
+    private var fuelLevelLow: Bool {
+        guard let v = Double(entry.fuelLevel.replacingOccurrences(of: ",", with: ".")) else { return false }
+        return v <= 40
     }
 
     private func tag(_ text: String, _ tint: Color) -> some View {
