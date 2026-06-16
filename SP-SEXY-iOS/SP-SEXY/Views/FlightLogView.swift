@@ -200,10 +200,9 @@ struct FlightLogHistory: View {
                 List {
                     ForEach(entries.reversed()) { entry in
                         FlightLogRow(entry: entry)
-                            .listRowBackground((Config.pilot(name: entry.pilot)?.color ?? .gray).opacity(0.16))
                             .listRowInsets(EdgeInsets(top: 2, leading: 12, bottom: 2, trailing: 12))
                             .listRowSeparator(.visible)
-                            .listRowSeparatorTint(Color.primary.opacity(0.35))
+                            .listRowSeparatorTint(Color.primary.opacity(0.25))
                     }
                 }
                 .listStyle(.plain)
@@ -251,9 +250,9 @@ struct FlightLogRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 1) {
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 Text(entry.date).font(.subheadline.weight(.semibold))
-                Text("· \(entry.pilot)").font(.caption).foregroundStyle(.secondary)
+                pilotTag
                 Spacer()
                 if entry.isOps == "TAK" { tag("OPS", .orange) }
                 if entry.isJoint == "TAK" { tag("WSP", .teal) }
@@ -281,6 +280,16 @@ struct FlightLogRow: View {
             }
         }
         .padding(.vertical, 3)
+    }
+
+    private var pilotTag: some View {
+        let color = Config.pilot(name: entry.pilot)?.color ?? .gray
+        return Text(entry.pilot)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 9)
+            .padding(.vertical, 3)
+            .background(color, in: Capsule())
+            .foregroundStyle(.white)
     }
 
     private func stat(_ label: String, _ value: String) -> some View {
