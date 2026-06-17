@@ -39,4 +39,5 @@ struct FlightLogEntry: Identifiable {
     var remarks: String       // I
     var isOps: String         // J  ("TAK"/"")
     var isJoint: String       // K  ("TAK"/"")
+    var isImportant: String   // L  ("TAK"/"")
 }

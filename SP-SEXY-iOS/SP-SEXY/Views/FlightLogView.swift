@@ -49,6 +49,7 @@ struct NewFlightLogForm: View {
     @State private var remarks = ""
     @State private var isOps = false
     @State private var isJoint = false
+    @State private var isImportant = false
 
     @State private var saving = false
     @State private var loadingLast = false
@@ -85,6 +86,10 @@ struct NewFlightLogForm: View {
                     .lineLimit(3...6)
                     .textInputAutocapitalization(.sentences)
                     .autocorrectionDisabled(false)
+                Toggle(isOn: $isImportant) {
+                    Label("Ważne (wyróżnij uwagi)", systemImage: "exclamationmark.triangle.fill")
+                }
+                .tint(.red)
             }
 
             if let errorMessage {
@@ -156,7 +161,8 @@ struct NewFlightLogForm: View {
             fuelLevel: fuelLevel,
             remarks: remarks,
             isOps: isOps ? "TAK" : "",
-            isJoint: isJoint ? "TAK" : ""
+            isJoint: isJoint ? "TAK" : "",
+            isImportant: isImportant ? "TAK" : ""
         )
 
         do {
@@ -274,9 +280,20 @@ struct FlightLogRow: View {
             }
 
             if !entry.remarks.isEmpty {
-                Text(entry.remarks)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if entry.isImportant == "TAK" {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.caption2)
+                            .foregroundStyle(.red)
+                        Text(entry.remarks)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.red)
+                    }
+                } else {
+                    Text(entry.remarks)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.vertical, 3)

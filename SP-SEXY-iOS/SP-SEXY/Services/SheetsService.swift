@@ -5,8 +5,8 @@ struct SheetsService {
     let auth: GoogleAuth
 
     private let base = "https://sheets.googleapis.com/v4/spreadsheets"
-    private var rangeAll: String { "\(Config.sheetName)!A2:K" }
-    private var rangeAppend: String { "\(Config.sheetName)!A:K" }
+    private var rangeAll: String { "\(Config.sheetName)!A2:L" }
+    private var rangeAppend: String { "\(Config.sheetName)!A:L" }
 
     func getFlightLog() async throws -> [FlightLogEntry] {
         let token = try await auth.validAccessToken()
@@ -24,7 +24,7 @@ struct SheetsService {
             return FlightLogEntry(
                 date: g(0), pilot: g(1), hoursBefore: g(2), hoursAfter: g(3),
                 fuelAdded: g(4), oilAdded: g(5), fuelCost: g(6), fuelLevel: g(7),
-                remarks: g(8), isOps: g(9), isJoint: g(10)
+                remarks: g(8), isOps: g(9), isJoint: g(10), isImportant: g(11)
             )
         }
     }
@@ -46,7 +46,7 @@ struct SheetsService {
 
         let values = [[
             e.date, e.pilot, e.hoursBefore, e.hoursAfter, e.fuelAdded,
-            e.oilAdded, e.fuelCost, e.fuelLevel, e.remarks, e.isOps, e.isJoint
+            e.oilAdded, e.fuelCost, e.fuelLevel, e.remarks, e.isOps, e.isJoint, e.isImportant
         ]]
         req.httpBody = try JSONSerialization.data(withJSONObject: ["values": values])
 
