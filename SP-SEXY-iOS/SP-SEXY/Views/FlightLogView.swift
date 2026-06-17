@@ -55,6 +55,11 @@ struct NewFlightLogForm: View {
     @State private var loadingLast = false
     @State private var errorMessage: String?
 
+    enum NumField: Hashable {
+        case hoursBefore, hoursAfter, fuelAdded, oilAdded, fuelCost, fuelLevel
+    }
+    @FocusState private var focused: NumField?
+
     private var service: SheetsService { SheetsService(auth: auth) }
 
     var body: some View {
@@ -65,15 +70,15 @@ struct NewFlightLogForm: View {
             }
 
             Section("Motogodziny") {
-                numField("Przed lotem", $hoursBefore, placeholder: "np. 145.3")
-                numField("Po locie", $hoursAfter, placeholder: "np. 146.8")
+                numField("Przed lotem", $hoursBefore, placeholder: "np. 145.3", field: .hoursBefore)
+                numField("Po locie", $hoursAfter, placeholder: "np. 146.8", field: .hoursAfter)
             }
 
             Section("Paliwo i olej") {
-                numField("Paliwo dolane (L)", $fuelAdded)
-                numField("Olej dolany (L)", $oilAdded)
-                numField("Koszt paliwa (PLN)", $fuelCost)
-                numField("Stan paliwa (L)", $fuelLevel, placeholder: "np. 60")
+                numField("Paliwo dolane (L)", $fuelAdded, field: .fuelAdded)
+                numField("Olej dolany (L)", $oilAdded, field: .oilAdded)
+                numField("Koszt paliwa (PLN)", $fuelCost, field: .fuelCost)
+                numField("Stan paliwa (L)", $fuelLevel, placeholder: "np. 60", field: .fuelLevel)
             }
 
             Section {
@@ -87,7 +92,11 @@ struct NewFlightLogForm: View {
                     .textInputAutocapitalization(.sentences)
                     .autocorrectionDisabled(false)
                 Toggle(isOn: $isImportant) {
-                    Label("Ważne (wyróżnij uwagi)", systemImage: "exclamationmark.triangle.fill")
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text("Ważne (wyróżnij uwagi)")
+                    }
                 }
                 .tint(.red)
             }
@@ -113,9 +122,15 @@ struct NewFlightLogForm: View {
             if loadingLast { ProgressView().padding(.top, 8) }
         }
         .task { await prefillLast() }
+        .onChange(of: focused) { newValue in
+            // Po wejściu w pole z domyślnym "0" – wyczyść je.
+            if newValue == .fuelAdded && fuelAdded == "0" { fuelAdded = "" }
+            if newValue == .oilAdded && oilAdded == "0" { oilAdded = "" }
+            if newValue == .fuelCost && fuelCost == "0" { fuelCost = "" }
+        }
     }
 
-    private func numField(_ label: String, _ binding: Binding<String>, placeholder: String = "0") -> some View {
+    private func numField(_ label: String, _ binding: Binding<String>, placeholder: String = "0", field: NumField) -> some View {
         HStack {
             Text(label)
             Spacer()
@@ -123,6 +138,7 @@ struct NewFlightLogForm: View {
                 .keyboardType(.decimalPad)
                 .multilineTextAlignment(.trailing)
                 .frame(maxWidth: 120)
+                .focused($focused, equals: field)
         }
     }
 
