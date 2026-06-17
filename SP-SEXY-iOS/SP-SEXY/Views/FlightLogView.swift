@@ -76,7 +76,7 @@ struct NewFlightLogForm: View {
 
             Section("Paliwo i olej") {
                 numField("Paliwo dolane (L)", $fuelAdded, field: .fuelAdded)
-                numField("Olej dolany (L)", $oilAdded, field: .oilAdded)
+                numField("Olej dolany (ml)", $oilAdded, field: .oilAdded)
                 numField("Koszt paliwa (PLN)", $fuelCost, field: .fuelCost)
                 numField("Stan paliwa (L)", $fuelLevel, placeholder: "np. 60", field: .fuelLevel)
             }
