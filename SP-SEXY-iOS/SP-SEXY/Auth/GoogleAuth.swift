@@ -108,6 +108,12 @@ final class GoogleAuth: NSObject, ObservableObject {
         pilot = nil
     }
 
+    /// Wyczyść sesję (np. gdy refresh token wygasł/odwołany) — wraca do ekranu logowania.
+    private func invalidateSession() {
+        tokens = nil
+        pilot = nil
+    }
+
     /// Zwraca ważny access token, odświeżając go w razie potrzeby.
     func validAccessToken() async throws -> String {
         guard var t = tokens else { throw AuthError.notSignedIn }
@@ -115,14 +121,23 @@ final class GoogleAuth: NSObject, ObservableObject {
         if t.expiresAt > Date().addingTimeInterval(60) {
             return t.accessToken
         }
-        guard let refreshToken = t.refreshToken else { throw AuthError.notSignedIn }
+        guard let refreshToken = t.refreshToken else {
+            invalidateSession()
+            throw AuthError.notSignedIn
+        }
 
-        let refreshed = try await refreshTokens(using: refreshToken)
-        t.accessToken = refreshed.accessToken
-        t.expiresAt = refreshed.expiresAt
-        if refreshed.refreshToken != nil { t.refreshToken = refreshed.refreshToken }
-        tokens = t
-        return t.accessToken
+        do {
+            let refreshed = try await refreshTokens(using: refreshToken)
+            t.accessToken = refreshed.accessToken
+            t.expiresAt = refreshed.expiresAt
+            if refreshed.refreshToken != nil { t.refreshToken = refreshed.refreshToken }
+            tokens = t
+            return t.accessToken
+        } catch {
+            // Refresh token wygasł lub został odwołany — wyczyść sesję i pokaż logowanie.
+            invalidateSession()
+            throw AuthError.notSignedIn
+        }
     }
 
     // MARK: - Przepływ OAuth
